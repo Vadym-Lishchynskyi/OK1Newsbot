@@ -31,7 +31,6 @@ logging.basicConfig(
 )
 
 BOT_USERNAME = '@OK1NewsBot'
-PHONE_NUMBER = '+380664108977'
 
 channels = {
     "get": "-1001859259587",  # Channel 1
@@ -161,7 +160,7 @@ if __name__ == "__main__":
 
     bot = Bot(token=system_config.TG_BOT_TOKEN)
 
-    with client.start(phone=PHONE_NUMBER):
+    with client.start(phone=system_config.PHONE_NUMBER):
 
         client.alert_status = False
 
