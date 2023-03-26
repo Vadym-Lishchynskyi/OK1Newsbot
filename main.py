@@ -1,7 +1,3 @@
-"""
-Removes from Telegram channel's chat users that in chat but not in channel.
-Can use with @donate subscription channels.
-"""
 import logging
 import os
 import re
@@ -24,25 +20,18 @@ from config import system_config
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 logging.basicConfig(
     format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.DEBUG
 )
 
-BOT_USERNAME = '@OK1NewsBot'
-
-channels = {
-    "get": "-1001859259587",  # Channel 1
-    "post": "-1001611862282",  # Channel 2
-}
-
 
 class AirAlerts(Enum):
-    link = 'https://t.me/Trial_channel1'  # TODO change to 'https://t.me/air_alert_ua'
-    # link = 'https://t.me/air_alert_ua'
-    chat_id = 1859259587  # TODO change to 1766138888
-    # chat_id = 1766138888
+    # link = 'https://t.me/Trial_channel1'  # TODO change to 'https://t.me/air_alert_ua'
+    link = 'https://t.me/air_alert_ua'
+    # chat_id = 1859259587  # TODO change to 1766138888
+    chat_id = 1766138888
     vin_alert_start = 'Повітряна тривога в Вінницька область.'
     vin_alert_end = 'Відбій тривоги в Вінницька область.'
 
@@ -73,7 +62,7 @@ class Ok1NewsChannel(Enum):  # TODO change to OK + add bot to OK
 # , pattern=r'(#Вінницька_область)')
 @events.register(events.NewMessage(chats=[AirAlerts.chat_id.value]))  # 1766138888
 async def alert_handler(event):
-    print('event')  # TODO logging
+    logger.info('event AirAlerts')
 
     # Roadmap
     if client.alert_status:
@@ -84,7 +73,7 @@ async def alert_handler(event):
                 chat_id=Ok1NewsChannel.chat_id.value,
                 photo=Path('static/alert_end.jpg'),
                 caption='🟢 Відбій тривоги на Вінниччині'
-                )
+            )
 
     else:
         # post all notifications from Vin
@@ -105,6 +94,8 @@ def get_default_alert_status():
 
 @events.register(events.NewMessage(chats=[ETrivoga.chat_id.value]))
 async def event_handler(event):
+    logger.info('event ETrivoga')
+
     alert_end = '🟢 Вінницька обл.'
     alert_start = '🚨 Вінницька обл.'
     gen_msg = '📢 Вінницька обл.'
@@ -131,6 +122,8 @@ async def event_handler(event):
 
 @events.register(events.NewMessage(chats=[VinODA.chat_id.value]))
 async def message_handler(event):
+    logger.info('event VinODA')
+
     late_time_1 = '⏳З 00:00 розпочалася комендантська година. Вона триватиме до 5:00.'
     late_time_2 = '⏳З 23:00 розпочалася комендантська година. Вона триватиме до 5:00.'
 
@@ -160,8 +153,9 @@ if __name__ == "__main__":
 
     bot = Bot(token=system_config.TG_BOT_TOKEN)
 
-    with client.start(phone=system_config.PHONE_NUMBER):
+    # bot.getUpdates()
 
+    with client.start(phone=system_config.PHONE_NUMBER):
         client.alert_status = False
 
         client.add_event_handler(alert_handler)
