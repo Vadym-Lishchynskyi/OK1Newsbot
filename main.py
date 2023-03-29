@@ -13,8 +13,12 @@ from telethon.tl.functions.channels import InviteToChannelRequest, JoinChannelRe
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import User
 from telethon import events
+from telethon.events.album import Album
+from telethon.tl.types import User, MessageMediaPhoto, MessageMediaDocument
 
 from telegram import Bot
+import telegram
+
 
 from config import system_config
 
@@ -40,6 +44,10 @@ class VinODA(Enum):
     link = 'https://t.me/VinnytsiaODA'
     chat_id = 1392388295
 
+    # Todo delete
+    # link = 'https://t.me/Trial_channel1'
+    # chat_id = 1859259587
+
 
 class ETrivoga(Enum):
     link = 'https://t.me/UkraineAlarmSignal'
@@ -60,18 +68,17 @@ class Ok1NewsChannel(Enum):  # TODO change to OK + add bot to OK
 # Register `events.NewMessage` before defining the client.
 # Once you have a client, `add_event_handler` will use this event.
 # , pattern=r'(#Вінницька_область)')
-@events.register(events.NewMessage(chats=[AirAlerts.chat_id.value]))  # 1766138888
+@events.register(events.NewMessage(chats=[AirAlerts.chat_id.value]))
 async def alert_handler(event):
     logger.info('event AirAlerts')
 
-    # Roadmap
     if client.alert_status:
         # post all notifications from AirAlerts
         if AirAlerts.vin_alert_end.value in event.raw_text:
             client.alert_status = False
-            await bot.send_photo(
-                chat_id=Ok1NewsChannel.chat_id.value,
-                photo=Path('static/alert_end.jpg'),
+            await client.send_file(
+                entity=Ok1NewsChannel.chat_id.value,
+                file=Path('static/alert_end.jpg'),
                 caption='🟢 Відбій тривоги на Вінниччині'
             )
 
@@ -80,9 +87,9 @@ async def alert_handler(event):
         if '#Вінницька_область' in event.raw_text:
             if AirAlerts.vin_alert_start.value in event.raw_text:
                 client.alert_status = True
-                await bot.send_photo(
-                    chat_id=Ok1NewsChannel.chat_id.value,
-                    photo=Path('static/alert_start.jpg'),
+                await client.send_file(
+                    entity=Ok1NewsChannel.chat_id.value,
+                    file=Path('static/alert_start.jpg'),
                     caption='🔴 Повітряна тривога на Вінниччині'
                 )
 
@@ -106,44 +113,62 @@ async def event_handler(event):
             if alert_start in event.raw_text or alert_end in event.raw_text:
                 return
 
-            await bot.send_message(
-                chat_id=Ok1NewsChannel.chat_id.value,
-                text=event.raw_text
+            await client.send_message(
+                entity=Ok1NewsChannel.chat_id.value,
+                message=event.text
             )
 
         elif gen_msg in event.raw_text or important_msg in event.raw_text:
-            await bot.send_message(
-                chat_id=Ok1NewsChannel.chat_id.value,
-                text=event.raw_text
+            await client.send_message(
+                entity=Ok1NewsChannel.chat_id.value,
+                message=event.text
             )
 
     await alert()
 
 
 @events.register(events.NewMessage(chats=[VinODA.chat_id.value]))
-async def message_handler(event):
+async def vinoda_message_handler(event):
     logger.info('event VinODA')
 
     late_time_1 = '⏳З 00:00 розпочалася комендантська година. Вона триватиме до 5:00.'
     late_time_2 = '⏳З 23:00 розпочалася комендантська година. Вона триватиме до 5:00.'
 
+    # __________________________________
+    pair = (event.chat_id, event.grouped_id)
+    if pair in albums:
+        albums[pair].append(event.message)
+        return
+    albums[pair] = [event.message]
+    await asyncio.sleep(0.5)
+    messages = albums.pop(pair)
+
+    # __________________________________
+
     if late_time_1 in event.raw_text:
-        await bot.send_photo(
-            chat_id=Ok1NewsChannel.chat_id.value,
-            photo=Path('static/late_time_00_05.jpg'),
-            caption=event.raw_text
+        await client.send_file(
+            entity=Ok1NewsChannel.chat_id.value,
+            file=Path('static/late_time_00_05.jpg'),
+            caption=event.text
         )
+
     elif late_time_2 in event.raw_text:
-        await bot.send_photo(
-            chat_id=Ok1NewsChannel.chat_id.value,
-            photo=Path('static/late_time_23_05.jpg'),
-            caption=event.raw_text
+        await client.send_file(
+            entity=Ok1NewsChannel.chat_id.value,
+            file=Path('static/late_time_23_05.jpg'),
+            caption=event.text
         )
-    else:
-        await bot.send_message(
-            chat_id=Ok1NewsChannel.chat_id.value,
-            text=event.raw_text
-        )
+
+    elif len(messages) == 1:
+        await event.forward_to(Ok1NewsChannel.chat_id.value)
+
+
+@events.register(events.album.Album(chats=[VinODA.chat_id.value]))
+async def vinoda_group_message_handler(event):
+    logger.info('event VinODA_group')
+
+    # Forwarding the album as a whole to Ok1NewsChannel
+    await event.forward_to(Ok1NewsChannel.chat_id.value)
 
 
 if __name__ == "__main__":
@@ -153,13 +178,14 @@ if __name__ == "__main__":
 
     bot = Bot(token=system_config.TG_BOT_TOKEN)
 
-    # bot.getUpdates()
+    albums = {}
 
     with client.start(phone=system_config.PHONE_NUMBER):
         client.alert_status = False
 
         client.add_event_handler(alert_handler)
         client.add_event_handler(event_handler)
-        client.add_event_handler(message_handler)
+        client.add_event_handler(vinoda_message_handler)
+        client.add_event_handler(vinoda_group_message_handler)
 
         client.run_until_disconnected()
