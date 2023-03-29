@@ -474,17 +474,6 @@ anyio = ">=3.4.0,<5"
 full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart", "pyyaml"]
 
 [[package]]
-name = "telegram"
-version = "0.0.1"
-description = "Telegram APIs"
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "telegram-0.0.1.tar.gz", hash = "sha256:d405a0af4c868a8dbeae6d03e297e21c7ee6269e11e2ed3810e15544aba02591"},
-]
-
-[[package]]
 name = "telethon"
 version = "1.27.0"
 description = "Full-featured Telegram client library for Python 3"
@@ -530,4 +519,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "5b0cd5653c8ff166455b220ef3a9f882d6ba48f71a189f307c975d6dbc83f054"
+content-hash = "3d9da52ee2ca14c045a2ef94fe6ab75b4b59f84216c2af72407e71cb85e3799e"

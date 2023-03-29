@@ -10,7 +10,6 @@ telethon = "^1.27.0"
 python-dotenv = "^1.0.0"
 python-telegram-bot = "^20.1"
 fastapi = "^0.95.0"
-telegram = "^0.0.1"
 
 [tool.poetry.dev-dependencies]
 
