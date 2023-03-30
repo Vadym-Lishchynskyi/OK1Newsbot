@@ -36,15 +36,15 @@ class AirAlerts(Enum):
     link = 'https://t.me/air_alert_ua'
     # chat_id = 1859259587  # TODO change to 1766138888
     chat_id = 1766138888
-    vin_alert_start = 'Повітряна тривога в Вінницька область.'
-    vin_alert_end = 'Відбій тривоги в Вінницька область.'
+    vin_alert_start = 'Повітряна тривога в Вінницька область'
+    vin_alert_end = 'Відбій тривоги в Вінницька область'
 
 
 class VinODA(Enum):
     link = 'https://t.me/VinnytsiaODA'
     chat_id = 1392388295
 
-    # Todo delete
+    # TODO delete
     # link = 'https://t.me/Trial_channel1'
     # chat_id = 1859259587
 
@@ -136,12 +136,12 @@ async def vinoda_message_handler(event):
 
     # __________________________________
     pair = (event.chat_id, event.grouped_id)
-    if pair in albums:
-        albums[pair].append(event.message)
+    if pair in client.albums:
+        client.group_counter += 1
         return
-    albums[pair] = [event.message]
-    await asyncio.sleep(0.5)
-    messages = albums.pop(pair)
+    else:
+        client.albums[pair] = [event.message]
+        await asyncio.sleep(0.2)
 
     # __________________________________
 
@@ -158,8 +158,7 @@ async def vinoda_message_handler(event):
             file=Path('static/late_time_23_05.jpg'),
             caption=event.text
         )
-
-    elif len(messages) == 1:
+    elif client.group_counter == 1:
         await event.forward_to(Ok1NewsChannel.chat_id.value)
 
 
@@ -178,7 +177,8 @@ if __name__ == "__main__":
 
     bot = Bot(token=system_config.TG_BOT_TOKEN)
 
-    albums = {}
+    client.albums = {}
+    client.group_counter = 1
 
     with client.start(phone=system_config.PHONE_NUMBER):
         client.alert_status = False
