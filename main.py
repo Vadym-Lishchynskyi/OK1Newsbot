@@ -134,16 +134,8 @@ async def vinoda_message_handler(event):
     late_time_1 = '⏳З 00:00 розпочалася комендантська година. Вона триватиме до 5:00.'
     late_time_2 = '⏳З 23:00 розпочалася комендантська година. Вона триватиме до 5:00.'
 
-    # __________________________________
-    pair = (event.chat_id, event.grouped_id)
-    if pair in client.albums:
-        client.group_counter += 1
+    if event.grouped_id is not None:
         return
-    else:
-        client.albums[pair] = [event.message]
-        await asyncio.sleep(0.2)
-
-    # __________________________________
 
     if late_time_1 in event.raw_text:
         await client.send_file(
@@ -158,7 +150,7 @@ async def vinoda_message_handler(event):
             file=Path('static/late_time_23_05.jpg'),
             caption=event.text
         )
-    elif client.group_counter == 1:
+    else:
         await event.forward_to(Ok1NewsChannel.chat_id.value)
 
 
@@ -176,9 +168,6 @@ if __name__ == "__main__":
     )
 
     bot = Bot(token=system_config.TG_BOT_TOKEN)
-
-    client.albums = {}
-    client.group_counter = 1
 
     with client.start(phone=system_config.PHONE_NUMBER):
         client.alert_status = False
