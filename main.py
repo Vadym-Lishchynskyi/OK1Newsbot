@@ -103,28 +103,38 @@ def get_default_alert_status():
 async def event_handler(event):
     logger.info('event ETrivoga')
 
+    general_alert = '🚨'
+    crimea_msg = '⚠️ Крим'
+
     alert_end = '🟢 Вінницька обл.'
     alert_start = '🚨 Вінницька обл.'
     gen_msg = '📢 Вінницька обл.'
     important_msg = '⚠️ Вінницька обл.'
 
-    async def alert():
-        if client.alert_status:
-            if alert_start in event.raw_text or alert_end in event.raw_text:
-                return
+    if general_alert in event.raw_text:
+        return
 
-            await client.send_message(
-                entity=Ok1NewsChannel.chat_id.value,
-                message=event.text
-            )
+    if crimea_msg in event.raw_text:
+        await client.send_message(
+            entity=Ok1NewsChannel.chat_id.value,
+            message=event.text
+        )
+        return
 
-        elif gen_msg in event.raw_text or important_msg in event.raw_text:
-            await client.send_message(
-                entity=Ok1NewsChannel.chat_id.value,
-                message=event.text
-            )
+    if client.alert_status:
+        if alert_start in event.raw_text or alert_end in event.raw_text:
+            return
 
-    await alert()
+        await client.send_message(
+            entity=Ok1NewsChannel.chat_id.value,
+            message=event.text
+        )
+
+    elif gen_msg in event.raw_text or important_msg in event.raw_text:
+        await client.send_message(
+            entity=Ok1NewsChannel.chat_id.value,
+            message=event.text
+        )
 
 
 @events.register(events.NewMessage(chats=[VinODA.chat_id.value]))
@@ -134,7 +144,14 @@ async def vinoda_message_handler(event):
     late_time_1 = '⏳З 00:00 розпочалася комендантська година. Вона триватиме до 5:00.'
     late_time_2 = '⏳З 23:00 розпочалася комендантська година. Вона триватиме до 5:00.'
 
+    alert1 = '‼️🔴УВАГА! ПОВІТРЯНА ТРИВОГА!🔴‼️'
+    alert2 = '🟩ВІДБІЙ ПОВІТРЯНОЇ ТРИВОГИ🟩'
+
+    # skip grouped notifications
     if event.grouped_id is not None:
+        return
+
+    if alert1 in event.raw_text or alert2 in event.raw_text:
         return
 
     if late_time_1 in event.raw_text:
