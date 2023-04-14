@@ -52,6 +52,8 @@ class VinODA(Enum):
 class ETrivoga(Enum):
     link = 'https://t.me/UkraineAlarmSignal'
     chat_id = 1502899255
+    # link = 'https://t.me/Trial_channel1'  # TODO change to 'https://t.me/UkraineAlarmSignal'
+    # chat_id = 1859259587
 
     alert_end = '🟢 Вінницька обл.'
     alert_start = '🚨 Вінницька обл.'
@@ -60,10 +62,12 @@ class ETrivoga(Enum):
 
 
 class Ok1NewsChannel(Enum):  # TODO change to OK + add bot to OK
-    link = 'https://t.me/Trail_Channel_2'
-    chat_id = -1001611862282
+    # link = 'https://t.me/Trail_Channel_2'
+    # chat_id = -1001611862282
     # chat_id = 1611862282
 
+    chat_id = -1001457366278
+    link = 'https://t.me/ok1news'
 
 # Register `events.NewMessage` before defining the client.
 # Once you have a client, `add_event_handler` will use this event.
@@ -103,38 +107,33 @@ def get_default_alert_status():
 async def event_handler(event):
     logger.info('event ETrivoga')
 
-    general_alert = '🚨'
-    crimea_msg = '⚠️ Крим'
+    symbol_explosion = '⚠️'
+    symbol_alert = '📢'
 
-    alert_end = '🟢 Вінницька обл.'
-    alert_start = '🚨 Вінницька обл.'
-    gen_msg = '📢 Вінницька обл.'
-    important_msg = '⚠️ Вінницька обл.'
+    vin_msg = 'Вінницька обл.'
+    crimea_msg = 'Крим'
 
-    if general_alert in event.raw_text:
-        return
+    def strip_msg(msg: str) -> str:
+        to_strip = ['- будьте обережні', 'Будьте обережні!']
 
-    if crimea_msg in event.raw_text:
-        await client.send_message(
-            entity=Ok1NewsChannel.chat_id.value,
-            message=event.text
-        )
-        return
+        for phrase in to_strip:
+            msg = msg.rstrip(phrase)
 
-    if client.alert_status:
-        if alert_start in event.raw_text or alert_end in event.raw_text:
-            return
+        return msg
 
-        await client.send_message(
-            entity=Ok1NewsChannel.chat_id.value,
-            message=event.text
-        )
-
-    elif gen_msg in event.raw_text or important_msg in event.raw_text:
-        await client.send_message(
-            entity=Ok1NewsChannel.chat_id.value,
-            message=event.text
-        )
+    if symbol_explosion in event.raw_text or symbol_alert in event.raw_text:
+        message = strip_msg(event.text)
+        if client.alert_status:
+            await client.send_message(
+                    entity=Ok1NewsChannel.chat_id.value,
+                    message=message
+                )
+        else:
+            if vin_msg in message or crimea_msg in message:
+                await client.send_message(
+                    entity=Ok1NewsChannel.chat_id.value,
+                    message=message
+                )
 
 
 @events.register(events.NewMessage(chats=[VinODA.chat_id.value]))
