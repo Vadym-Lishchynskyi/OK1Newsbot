@@ -16,6 +16,6 @@ ADD . .
 
 RUN chmod +x ./entrypoint.sh
 
-EXPOSE 8000
+EXPOSE 8001
 
 CMD ["/app/entrypoint.sh"]
