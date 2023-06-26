@@ -20,40 +20,51 @@ from telegram import Bot
 import telegram
 
 
-from config import system_config
+from config import (
+    system_config,
+    alert_config,
+    post_config
+)
+
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-logging.basicConfig(
-    format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.DEBUG
-)
+formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+fh = logging.FileHandler('status_logs.log')
+fh.setLevel(logging.DEBUG)
+fh.setFormatter(formatter)
+
+logger.addHandler(fh)
+
+
+class KPSzsu(Enum):
+    link = alert_config.KPS_LINK
+    chat_id = alert_config.KPS_ID
+
+    rocket_danger = '🚀 Вінницька область'   # https://t.me/kpszsu/2805
+    airalert_info = 'Вінницька область'  # https://t.me/kpszsu/2702
+    midUA_info = 'Центральні області'  # https://t.me/kpszsu/2765
+    midUAs_info = 'центральних'  # https://t.me/kpszsu/2803
 
 
 class AirAlerts(Enum):
-    # link = 'https://t.me/Trial_channel1'  # TODO change to 'https://t.me/air_alert_ua'
-    link = 'https://t.me/air_alert_ua'
-    # chat_id = 1859259587  # TODO change to 1766138888
-    chat_id = 1766138888
+    link = alert_config.AirAlerts_LINK
+    chat_id = alert_config.AirAlerts_ID
+
     vin_alert_start = 'Повітряна тривога в Вінницька область'
     vin_alert_end = 'Відбій тривоги в Вінницька область'
 
 
 class VinODA(Enum):
-    link = 'https://t.me/VinnytsiaODA'
-    chat_id = 1392388295
-
-    # TODO delete
-    # link = 'https://t.me/Trial_channel1'
-    # chat_id = 1859259587
+    link = alert_config.VinODA_LINK
+    chat_id = alert_config.VinODA_ID
 
 
 class ETrivoga(Enum):
-    link = 'https://t.me/UkraineAlarmSignal'
-    chat_id = 1502899255
-    # link = 'https://t.me/Trial_channel1'  # TODO change to 'https://t.me/UkraineAlarmSignal'
-    # chat_id = 1859259587
+    link = alert_config.ETrivoga_LINK
+    chat_id = alert_config.ETrivoga_ID
 
     alert_end = '🟢 Вінницька обл.'
     alert_start = '🚨 Вінницька обл.'
@@ -61,13 +72,9 @@ class ETrivoga(Enum):
     important_msg = '⚠️ Вінницька обл.'
 
 
-class Ok1NewsChannel(Enum):  # TODO change to OK + add bot to OK
-    # link = 'https://t.me/Trail_Channel_2'
-    # chat_id = -1001611862282
-    # chat_id = 1611862282
-
-    chat_id = -1001457366278
-    link = 'https://t.me/ok1news'
+class Ok1NewsChannel(Enum):
+    link = post_config.POST_LINK
+    chat_id = post_config.POST_ID
 
 # Register `events.NewMessage` before defining the client.
 # Once you have a client, `add_event_handler` will use this event.
@@ -136,6 +143,41 @@ async def event_handler(event):
                 )
 
 
+@events.register(events.NewMessage(chats=[KPSzsu.chat_id.value]))
+async def kpszsu_handler(event):
+    logger.info('event KPSzsu')
+
+    def strip_kpszsumsg(msg: str) -> str:
+        to_strip = ['⚠️Увага!', '⚠️ Увага!', 'Прямуйте в укриття!', 'Не ігноруйте сигнали повітряної тривоги!']
+
+        for phrase in to_strip:
+            msg = msg.rstrip(phrase)
+
+        return msg
+
+    if client.alert_status:
+        if midUA_info in event.raw_text or midUAs_info in event.raw_text or airalert_info in event.raw_text:
+            message = strip_kpszsumsg(event.text)
+            await client.send_message(
+                entity=Ok1NewsChannel.chat_id.value,
+                message=message
+            )
+
+    if rocket_danger in event.raw_text:
+        if client.alert_status:
+            await client.send_message(
+                    entity=Ok1NewsChannel.chat_id.value,
+                    message='⚠️ Повітряні Сили ЗСУ повідомляють про загрозу ракетного удару по Вінниччині! Пройдіть в безпечне місце!'
+                )
+        else:
+            if midUA_info in event.raw_text or midUAs_info in event.raw_text or airalert_info in event.raw_text:
+                message = strip_kpszsumsg(event.text)
+                await client.send_message(
+                    entity=Ok1NewsChannel.chat_id.value,
+                    message=message
+                )
+
+
 @events.register(events.NewMessage(chats=[VinODA.chat_id.value]))
 async def vinoda_message_handler(event):
     logger.info('event VinODA')
@@ -143,14 +185,18 @@ async def vinoda_message_handler(event):
     late_time_1 = '⏳З 00:00 розпочалася комендантська година. Вона триватиме до 5:00.'
     late_time_2 = '⏳З 23:00 розпочалася комендантська година. Вона триватиме до 5:00.'
 
-    alert1 = '‼️🔴УВАГА! ПОВІТРЯНА ТРИВОГА!🔴‼️'
-    alert2 = '🟩ВІДБІЙ ПОВІТРЯНОЇ ТРИВОГИ🟩'
+    alerts = [
+        '‼️🔴УВАГА! ПОВІТРЯНА ТРИВОГА!🔴‼️',
+        '🟩ВІДБІЙ ПОВІТРЯНОЇ ТРИВОГИ🟩',
+        '🟢 Відбій тривоги на Вінниччині',
+        '🔴 Повітряна тривога на Вінниччині'
+    ]
 
     # skip grouped notifications
     if event.grouped_id is not None:
         return
 
-    if alert1 in event.raw_text or alert2 in event.raw_text:
+    if event.raw_text.strip() in alerts:
         return
 
     if late_time_1 in event.raw_text:
