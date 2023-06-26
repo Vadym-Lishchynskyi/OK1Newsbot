@@ -19,13 +19,11 @@ from telethon.tl.types import User, MessageMediaPhoto, MessageMediaDocument
 from telegram import Bot
 import telegram
 
-
 from config import (
     system_config,
     alert_config,
     post_config
 )
-
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -43,7 +41,7 @@ class KPSzsu(Enum):
     link = alert_config.KPS_LINK
     chat_id = alert_config.KPS_ID
 
-    rocket_danger = '🚀 Вінницька область'   # https://t.me/kpszsu/2805
+    rocket_danger = '🚀 Вінницька область'  # https://t.me/kpszsu/2805
     airalert_info = 'Вінницька область'  # https://t.me/kpszsu/2702
     midUA_info = 'Центральні області'  # https://t.me/kpszsu/2765
     midUAs_info = 'центральних'  # https://t.me/kpszsu/2803
@@ -75,6 +73,7 @@ class ETrivoga(Enum):
 class Ok1NewsChannel(Enum):
     link = post_config.POST_LINK
     chat_id = post_config.POST_ID
+
 
 # Register `events.NewMessage` before defining the client.
 # Once you have a client, `add_event_handler` will use this event.
@@ -132,9 +131,9 @@ async def event_handler(event):
         message = strip_msg(event.text)
         if client.alert_status:
             await client.send_message(
-                    entity=Ok1NewsChannel.chat_id.value,
-                    message=message
-                )
+                entity=Ok1NewsChannel.chat_id.value,
+                message=message
+            )
         else:
             if vin_msg in message or crimea_msg in message:
                 await client.send_message(
@@ -151,31 +150,26 @@ async def kpszsu_handler(event):
         to_strip = ['⚠️Увага!', '⚠️ Увага!', 'Прямуйте в укриття!', 'Не ігноруйте сигнали повітряної тривоги!']
 
         for phrase in to_strip:
-            msg = msg.rstrip(phrase)
+            msg = msg.replace(phrase, '')
 
         return msg
 
     if client.alert_status:
-        if midUA_info in event.raw_text or midUAs_info in event.raw_text or airalert_info in event.raw_text:
+        if KPSzsu.midUA_info.value in event.raw_text \
+                or KPSzsu.midUAs_info.value in event.raw_text \
+                or KPSzsu.airalert_info.value in event.raw_text:
             message = strip_kpszsumsg(event.text)
             await client.send_message(
                 entity=Ok1NewsChannel.chat_id.value,
                 message=message
             )
 
-    if rocket_danger in event.raw_text:
-        if client.alert_status:
-            await client.send_message(
-                    entity=Ok1NewsChannel.chat_id.value,
-                    message='⚠️ Повітряні Сили ЗСУ повідомляють про загрозу ракетного удару по Вінниччині! Пройдіть в безпечне місце!'
-                )
-        else:
-            if midUA_info in event.raw_text or midUAs_info in event.raw_text or airalert_info in event.raw_text:
-                message = strip_kpszsumsg(event.text)
-                await client.send_message(
-                    entity=Ok1NewsChannel.chat_id.value,
-                    message=message
-                )
+    if KPSzsu.rocket_danger.value in event.raw_text:
+        await client.send_message(
+            entity=Ok1NewsChannel.chat_id.value,
+            message='⚠️ Повітряні Сили ЗСУ повідомляють про загрозу ракетного удару по Вінниччині! Пройдіть в '
+                    'безпечне місце!'
+        )
 
 
 @events.register(events.NewMessage(chats=[VinODA.chat_id.value]))
@@ -238,5 +232,6 @@ if __name__ == "__main__":
         client.add_event_handler(event_handler)
         client.add_event_handler(vinoda_message_handler)
         client.add_event_handler(vinoda_group_message_handler)
+        client.add_event_handler(kpszsu_handler)
 
         client.run_until_disconnected()
